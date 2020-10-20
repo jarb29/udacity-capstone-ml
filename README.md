@@ -6,7 +6,12 @@
 
 
 ## Project Overview
-   Given an image of a dog, the algorithm will identify an estimate of the canine’s breed using Convolutional Neural Networks (CNN)!. If supplied an image of a human, the code will identify the resembling dog breed. In this project. Build a pipeline that can be used within a web or mobile app to process real-world, user-supplied images.
+
+Dogs are closely involved in human lives as family members, and are very common as pets. On the other
+hand, the number of dog-related incidents of injury and uncivilized behavior is increasing. This leads to a need for dog identification using modern visual technology, both for dog recognition and finer-grained
+classification to breed.
+
+Given an image of a dog, the algorithm will identify an estimate of the canine’s breed using Convolutional Neural Networks (CNN)!. If supplied an image of a human, the code will identify the resembling dog breed. In this project. Build a pipeline that can be used within a web or mobile app to process real-world, user-supplied images.
 
 ![Sample Output][image1]
 
@@ -14,6 +19,13 @@
 ## Project Statemet
 
 The goal is create state-of-the-art CNN models for a dog classification. By piecing together a series of models designed to perform various tasks in a data processing pipeline.  
+
+### Datasets and Inputs
+
+2. https://s3-us-west-1.amazonaws.com/udacity-aind/dog-project/dogImages.zip). The folder should contain 133 folders, each corresponding to a different dog breed.
+3. http://vis-www.cs.umass.edu/lfw/lfw.tgz).  human dataset. 
+
+### Solution statement
 
 Steps to achieve this process:
 
@@ -25,19 +37,19 @@ Steps to achieve this process:
 	Step 5: Write your Algorithm
 	Step 6: Test Your Algorithm
 
-### Datasets and Inputs
+### A benchmark model
+Stanford Dogs Dataset
 
-2. Download the [dog dataset](https://s3-us-west-1.amazonaws.com/udacity-aind/dog-project/dogImages.zip).  Unzip the folder and place it in the repo, at location `path/to/dog-project/dogImages`.  The `dogImages/` folder should contain 133 folders, each corresponding to a different dog breed.
-3. Download the [human dataset](http://vis-www.cs.umass.edu/lfw/lfw.tgz).  Unzip the folder and place it in the repo, at location `path/to/dog-project/lfw`.  If you are using a Windows machine, you are encouraged to use [7zip](http://www.7-zip.org/) to extract the folder. 
+Learning Attentive Pairwise Interaction for Fine-Grained Classification
+24 Feb 2020 • Peiqin Zhuang • Yali Wang • Yu Qiao
 
-
-
-## Project Submission
-
-Your submission should consist of the github link to your repository.  Your repository should contain:
-- The `dog_app.ipynb` file with fully functional code, all code cells executed and displaying output, and all questions answered.
-- An HTML or PDF export of the project notebook with the name `report.html` or `report.pdf`.
-
-Please do __NOT__ include any of the project data sets provided in the `dogImages/` or `lfw/` folders.
+Fine-grained classification is a challenging problem, due to subtle differences among highly-confused categories. Most approaches address this difficulty by learning discriminative representation of individual input image. On the other hand, humans can effectively identify contrastive clues by comparing image pairs. Inspired by this fact, this paper proposes a simple but effective Attentive Pairwise Interaction Network (API-Net), which can progressively recognize a pair of fine-grained images by interaction. Specifically, API-Net first learns a mutual feature vector to capture semantic differences in the input pair. It then compares this mutual vector with individual vectors to generate gates for each input image. These distinct gate vectors inherit mutual context on semantic differences, which allow API-Net to attentively capture contrastive clues by pairwise interaction between two images. Additionally, we train API-Net in an end-to-end manner with a score ranking regularization, which can further generalize API-Net by taking feature priorities into account. We conduct extensive experiments on five popular benchmarks in fine-grained classification. API-Net outperforms the recent SOTA methods, i.e., CUB-200-2011 (90.0%), Aircraft(93.9%), Stanford Cars (95.3%), Stanford Dogs (90.3%), and NABirds (88.1%).
 
 
+### Evaluation metrics
+Validation Loss
+Loss Function and Backpropagation 
+Gradient Descent
+
+
+### Project design
