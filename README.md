@@ -30,10 +30,7 @@ models designed to perform various tasks in a data processing pipeline.
 3. http://vis-www.cs.umass.edu/lfw/lfw.tgz).  human dataset. 
 
 ### Solution statement
-
 Steps to achieve this process:
-![Sample Output][image4]
-
 	Step 0: Import Datasets
 	Step 1: Detect Humans
 	Step 2: Detect Dogs
@@ -41,6 +38,9 @@ Steps to achieve this process:
 	Step 4: Create a CNN to Classify Dog Breeds (using Transfer Learning)
 	Step 5: Write the Algorithm
 	Step 6: Test the Algorithm
+
+The image clasificationes steps
+![Sample Output][image4]
 
 ### A benchmark model
 
