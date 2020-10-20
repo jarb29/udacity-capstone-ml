@@ -22,8 +22,10 @@ The idea behind is to develop an app that given an image of a dog, the algorithm
 
 ## Project Statemet
 
-The goal is create state-of-the-art CNN models for a dog classification. By piecing together a series of 
-models designed to perform various tasks in a data processing pipeline.  
+This is a supervised classification machine learning model where I will use state-of-the-art CNN models for 
+a dog classification, the goal is piece together a series of CNN models designed to perform various tasks in 
+a data processing pipeline as a result it will be possible to estimate the canine’s breed. 
+
 
 ### Datasets and Inputs
 
