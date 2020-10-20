@@ -3,7 +3,8 @@
 [image1]: ./images/sample_dog_output.png "Sample Output"
 [image2]: ./images/vgg16_model.png "VGG-16 Model Layers"
 [image3]: ./images/vgg16_model_draw.png "VGG16 Model Figure"
-[image4]: ./images/steps.png "VGG16 Model Figure"
+[image4]: ./images/steps.png "Steps"
+[image5]: ./images/CM "Con Matrix"
 
 
 ## Project Overview
@@ -50,9 +51,8 @@ accuracy of 82.65% of the model trained on Tsinghua Dogs achieved.
 
 
 ### Evaluation metrics
-Validation Loss
-Loss Function and Backpropagation 
-Gradient Descent
-
+Confusion Matrix
+Evaluation of the performance of a classification model is based on the counts of test records correctly and incorrectly predicted by the model. The confusion matrix provides a more insightful picture which is not only the performance of a predictive model, but also which classes are being predicted correctly and incorrectly, and what type of errors are being made. To illustrate, we can see how the 4 classification metrics are calculated (TP, FP, FN, TN), and our predicted value compared to the actual value in a confusion matrix is clearly presented in the below confusion matrix table.
+![Sample Output][image5]
 
 ### Project design
