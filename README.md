@@ -3,6 +3,7 @@
 [image1]: ./images/sample_dog_output.png "Sample Output"
 [image2]: ./images/vgg16_model.png "VGG-16 Model Layers"
 [image3]: ./images/vgg16_model_draw.png "VGG16 Model Figure"
+[image4]: ./images/steps.png "VGG16 Model Figure"
 
 
 ## Project Overview
@@ -31,6 +32,7 @@ models designed to perform various tasks in a data processing pipeline.
 ### Solution statement
 
 Steps to achieve this process:
+![Sample Output][image4]
 
 	Step 0: Import Datasets
 	Step 1: Detect Humans
