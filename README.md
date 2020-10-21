@@ -35,7 +35,9 @@ The dataset is clean and provided by udacity it containg 13233 total human image
 3. http://vis-www.cs.umass.edu/lfw/lfw.tgz).  human dataset. 
 
 ### Solution statement
+
 Steps to achieve this process:
+
 	Step 0: Import Datasets
 	Step 1: Detect Humans
 	Step 2: Detect Dogs
@@ -43,6 +45,7 @@ Steps to achieve this process:
 	Step 4: Create a CNN to Classify Dog Breeds (using Transfer Learning)
 	Step 5: Write the Algorithm
 	Step 6: Test the Algorithm
+
 
 The image clasificationes steps
 ![Sample Output][image4]
