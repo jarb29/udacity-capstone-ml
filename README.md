@@ -48,9 +48,11 @@ Steps to achieve this process:
 
 
 The image clasificationes steps
+
 ![Sample Output][image4]
 
 The process:
+
 Download and visualize the data; after this step is complete the data must be normalized for further processing by the layers of the neural network. I will be using one of the openCv pre-trained face detectors, to build the human face recognition model and build a human face detector. Then i will use the Pre-trained VGG-16 Model, along with weights that have been trained on ImageNet, a very large, very popular dataset used for image classification and other vision tasks followed by building the dog detector. After we have functions for detecting humans and dogs in images, we need a way to predict breed from images. The following step involve create a CNN that classifies dog breeds, from scratch, we will target per a test accuracy of at least 10%. I'll use transfer learning to create a CNN that attains greatly improved accuracy. The final steps are to train, predict and optimize the model. 
 
 
