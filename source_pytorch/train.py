@@ -1,3 +1,8 @@
+      
+#####################################################################################################
+                                            # Nuevo modelo
+#####################################################################################################
+
 import argparse
 import json
 import os
@@ -5,9 +10,14 @@ import pandas as pd
 import torch
 import torch.optim as optim
 import torch.utils.data
+import boto3
+import numpy as np
+from torchvision import datasets
+import torchvision.transforms as transforms
 
 # imports the model in model.py by name
-from model import BinaryClassifier
+from model import Net
+
 
 def model_fn(model_dir):
     """Load the PyTorch model from the `model_dir` directory."""
@@ -23,7 +33,7 @@ def model_fn(model_dir):
 
     # Determine the device and construct the model.
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = BinaryClassifier(model_info['input_features'], model_info['hidden_dim'], model_info['output_dim'])
+    model = Net(model_info['input_features'], model_info['hidden_dim'], model_info['output_dim'])
 
     # Load the stored model parameters.
     model_path = os.path.join(model_dir, 'model.pth')
@@ -37,58 +47,73 @@ def model_fn(model_dir):
     return model
 
 # Gets training data in batches from the train.csv file
-def _get_train_data_loader(batch_size, training_dir):
+def _get_train_data_loader(batch_size, training_dir, path):
     print("Get train data loader.")
 
-    train_data = pd.read_csv(os.path.join(training_dir, "train.csv"), header=None, names=None)
+    train_data = pd.read_csv(os.path.join(training_dir, path), header=None, names=None)
 
-    train_y = torch.from_numpy(train_data[[0]].values).float().squeeze()
-    train_x = torch.from_numpy(train_data.drop([0], axis=1).values).float()
+#     train_y = torch.from_numpy(train_data[[0]].values).float().squeeze()
+#     train_x = torch.from_numpy(train_data.drop([0], axis=1).values).float()
 
-    train_ds = torch.utils.data.TensorDataset(train_x, train_y)
-
-    return torch.utils.data.DataLoader(train_ds, batch_size=batch_size)
+#     train_ds = torch.utils.data.TensorDataset(train_x, train_y)
+# torch.utils.data.DataLoader(train_ds, batch_size=batch_size)
+    return train_data
 
 
 # Provided training function
-def train(model, train_loader, epochs, criterion, optimizer, device):
-    """
-    This is the training method that is called by the PyTorch training script. The parameters
-    passed are as follows:
-    model        - The PyTorch model that we wish to train.
-    train_loader - The PyTorch DataLoader that should be used during training.
-    epochs       - The total number of epochs to train for.
-    criterion    - The loss function used for training. 
-    optimizer    - The optimizer to use during training.
-    device       - Where the model and data should be loaded (gpu or cpu).
-    """
-    
-    # training loop is provided
-    for epoch in range(1, epochs + 1):
-        model.train() # Make sure that the model is in training mode.
+def train(n_epochs, loaders, model, optimizer, criterion, valid_loader):
+    """returns trained model"""
+    # initialize tracker for minimum validation loss
+    valid_loss_min = np.Inf 
 
-        total_loss = 0
-
-        for batch in train_loader:
-            # get data
-            batch_x, batch_y = batch
-
-            batch_x = batch_x.to(device)
-            batch_y = batch_y.to(device)
+    #print_every = 10
+    for epoch in range(1, n_epochs+1):
+        # initialize variables to monitor training and validation loss
+        train_loss = 0.0
+        valid_loss = 0.0
+        for index, (inputs, labels) in loaders.iterrows():
+            print(inputs, "LA ENTRADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+            # Move input and label tensors to the default device
 
             optimizer.zero_grad()
-
-            # get predictions from model
-            y_pred = model(batch_x)
-            
-            # perform backprop
-            loss = criterion(y_pred, batch_y)
+            output = model(labels)
+            # calculate the loss
+            loss = criterion(output, inputs)
             loss.backward()
             optimizer.step()
-            
-            total_loss += loss.data.item()
 
-        print("Epoch: {}, Loss: {}".format(epoch, total_loss / len(train_loader)))
+            train_loss += loss.item()
+
+            #if steps % print_every == 0:
+        model.eval()
+        for batch_idx, (data, target) in valid_loader.iterrows():
+#             data, target = data.cuda(), target.cuda()
+#             # move to GPU
+#             if use_cuda:
+#                 data, target = data.cuda(), target.cuda()
+                ## update the average validation loss
+                # forward pass: compute predicted outputs by passing inputs to the model
+            output = model(target)
+            # calculate the loss
+            loss = criterion(output, data)
+            # update running validation loss 
+            valid_loss += loss.item()
+            print("alexxxxxxxxx")
+
+        print('Epoch: {} \tTraining Loss: {:.6f} \tValidation Loss: {:.6f}'.format(
+            epoch, 
+            train_loss,
+            valid_loss
+            ))
+        
+        ## TODO: save the model if validation loss has decreased
+        if valid_loss < valid_loss_min:
+            torch.save(model.state_dict(), save_path)
+            print('Validation loss decreased ({:.6f} --> {:.6f}).  Saving model ...'.format(
+            valid_loss_min,
+            valid_loss))
+            valid_loss_min = valid_loss
+            valid_loss = 0
 
 
 ## TODO: Complete the main code
@@ -99,12 +124,19 @@ if __name__ == '__main__':
     
     # Here we set up an argument parser to easily access the parameters
     parser = argparse.ArgumentParser()
+    
+    
+    
+    parser.add_argument('--hosts', type=list, default=json.loads(os.environ['SM_HOSTS']))
+    parser.add_argument('--current-host', type=str, default=os.environ['SM_CURRENT_HOST'])
+    parser.add_argument('--num-gpus', type=int, default=os.environ['SM_NUM_GPUS'])
 
     # SageMaker parameters, like the directories for training data and saving models; set automatically
     # Do not need to change
     parser.add_argument('--output-data-dir', type=str, default=os.environ['SM_OUTPUT_DATA_DIR'])
     parser.add_argument('--model-dir', type=str, default=os.environ['SM_MODEL_DIR'])
     parser.add_argument('--data-dir', type=str, default=os.environ['SM_CHANNEL_TRAIN'])
+    parser.add_argument('--test', type=str, default=os.environ['SM_CHANNEL_TEST'])
     
     # Training Parameters, given
     parser.add_argument('--batch-size', type=int, default=10, metavar='N',
@@ -115,6 +147,8 @@ if __name__ == '__main__':
                         help='learning rate (default: 0.001)')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
+    parser.add_argument('--bucket', type=str, default= 'prueba', metavar='B',
+                        help='random seed (default: alexander rubio)')
     
     ## TODO: Add args for the three model parameters: input_features, hidden_dim, output_dim
     # Model Parameters
@@ -124,14 +158,16 @@ if __name__ == '__main__':
     
     # args holds all passed-in arguments
     args = parser.parse_args()
-
+    
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device {}.".format(device))
 
     torch.manual_seed(args.seed)
 
     # Load the training data.
-    train_loader = _get_train_data_loader(args.batch_size, args.data_dir)
+    train_loader = _get_train_data_loader(args.batch_size, args.data_dir, "train.csv")
+    valid_loader = _get_train_data_loader(args.batch_size, args.test, "test.csv")
+
 
 
     ## --- Your code here --- ##
@@ -139,14 +175,15 @@ if __name__ == '__main__':
     ## TODO:  Build the model by passing in the input params
     # To get params from the parser, call args.argument_name, ex. args.epochs or ards.hidden_dim
     # Don't forget to move your model .to(device) to move to GPU , if appropriate
-    model = BinaryClassifier(args.input_features, args.hidden_dim, args.output_dim).to(device)
+    model = Net(args.input_features, args.hidden_dim, args.output_dim).to(device)
 
     ## TODO: Define an optimizer and loss function for training
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     criterion = torch.nn.BCELoss()
 
     # Trains the model (given line of code, which calls the above training function)
-    train(model, train_loader, args.epochs, criterion, optimizer, device)
+    train(args.epochs, train_loader, model, optimizer, criterion, valid_loader)
+
 
     ## TODO: complete in the model_info by adding three argument names, the first is given
     # Keep the keys of this dictionary as they are 
@@ -165,4 +202,9 @@ if __name__ == '__main__':
 	# Save the model parameters
     model_path = os.path.join(args.model_dir, 'model.pth')
     with open(model_path, 'wb') as f:
-        torch.save(model.cpu().state_dict(), f)
+        torch.save(model.cpu().state_dict(), f)   
+    
+    
+    
+    
+    
