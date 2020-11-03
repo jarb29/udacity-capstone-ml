@@ -14,6 +14,12 @@ import boto3
 import numpy as np
 from torchvision import datasets
 import torchvision.transforms as transforms
+from PIL import Image
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+import torchvision.models as models
+import torch.nn as nn
+import torch.nn.functional as F
 
 # imports the model in model.py by name
 from model import Net
@@ -49,14 +55,13 @@ def model_fn(model_dir):
 # Gets training data in batches from the train.csv file
 def _get_train_data_loader(batch_size, training_dir, path):
     print("Get train data loader.")
+    from torchvision import datasets
+    
+    print(os.path.join(training_dir, path), "PARA VER QUE ESSSSS")
 
-    train_data = pd.read_csv(os.path.join(training_dir, path), header=None, names=None)
+    train_data = torch.load(os.path.join(training_dir, path))
+    print(train_data, "DEBERIA SER EL TENSOR")
 
-#     train_y = torch.from_numpy(train_data[[0]].values).float().squeeze()
-#     train_x = torch.from_numpy(train_data.drop([0], axis=1).values).float()
-
-#     train_ds = torch.utils.data.TensorDataset(train_x, train_y)
-# torch.utils.data.DataLoader(train_ds, batch_size=batch_size)
     return train_data
 
 
@@ -71,7 +76,7 @@ def train(n_epochs, loaders, model, optimizer, criterion, valid_loader):
         # initialize variables to monitor training and validation loss
         train_loss = 0.0
         valid_loss = 0.0
-        for index, (inputs, labels) in loaders.iterrows():
+        for index, (inputs, labels) in enumerate(loaders):
             print(inputs, "LA ENTRADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
             # Move input and label tensors to the default device
 
@@ -86,7 +91,7 @@ def train(n_epochs, loaders, model, optimizer, criterion, valid_loader):
 
             #if steps % print_every == 0:
         model.eval()
-        for batch_idx, (data, target) in valid_loader.iterrows():
+        for batch_idx, (data, target) in enumerate(valid_loader):
 #             data, target = data.cuda(), target.cuda()
 #             # move to GPU
 #             if use_cuda:
@@ -165,8 +170,8 @@ if __name__ == '__main__':
     torch.manual_seed(args.seed)
 
     # Load the training data.
-    train_loader = _get_train_data_loader(args.batch_size, args.data_dir, "train.csv")
-    valid_loader = _get_train_data_loader(args.batch_size, args.test, "test.csv")
+    train_loader = _get_train_data_loader(args.batch_size, args.data_dir, "train.pt")
+    valid_loader = _get_train_data_loader(args.batch_size, args.test, "test.pt")
 
 
 
