@@ -12,7 +12,6 @@ import torch.optim as optim
 import torch.utils.data
 import boto3
 import numpy as np
-from torchvision import datasets
 import torchvision.transforms as transforms
 from PIL import Image
 from PIL import ImageFile
@@ -20,6 +19,8 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 import torchvision.models as models
 import torch.nn as nn
 import torch.nn.functional as F
+from torchvision import datasets
+
 
 # imports the model in model.py by name
 from model import Net
@@ -53,16 +54,34 @@ def model_fn(model_dir):
     return model
 
 # Gets training data in batches from the train.csv file
-def _get_train_data_loader(batch_size, training_dir, path):
+def _get_train_data_loader(batch_size, training_dir, test_dir):
     print("Get train data loader.")
-    from torchvision import datasets
     
-    print(os.path.join(training_dir, path), "PARA VER QUE ESSSSS")
+    train_transform = transforms.Compose([ transforms.Resize(224),
+                                           transforms.RandomHorizontalFlip(), # randomly flip and rotate
+                                           transforms.RandomRotation(10),
+                                           transforms.CenterCrop(244),
+                                           transforms.ToTensor(),
+                                           transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+                                         ])
+    
+    test_transform = transforms.Compose([
+                                         transforms.Resize(224),
+                                         transforms.ToTensor(),
+                                         transforms.CenterCrop(244),
+                                         transforms.Normalize([0.5, 0.5, 0.5],[0.5, 0.5, 0.5])
+                                        ])
+    
+    
+    train_data = datasets.ImageFolder(training_dir, transform=train_transform)
 
-    train_data = torch.load(os.path.join(training_dir, path))
-    print(train_data, "DEBERIA SER EL TENSOR")
+    test_data = datasets.ImageFolder(test_dir, transform=test_transform)
 
-    return train_data
+    train_loader = torch.utils.data.DataLoader(train_data, batch_size=64, shuffle=True)
+
+    test_loader = torch.utils.data.DataLoader(test_data, batch_size=64)
+
+    return train_loader, test_loader
 
 
 # Provided training function
@@ -72,18 +91,24 @@ def train(n_epochs, loaders, model, optimizer, criterion, valid_loader):
     valid_loss_min = np.Inf 
 
     #print_every = 10
+
+    
     for epoch in range(1, n_epochs+1):
         # initialize variables to monitor training and validation loss
         train_loss = 0.0
         valid_loss = 0.0
+        model.train()
         for index, (inputs, labels) in enumerate(loaders):
-            print(inputs, "LA ENTRADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
             # Move input and label tensors to the default device
-
+            
             optimizer.zero_grad()
-            output = model(labels)
-            # calculate the loss
-            loss = criterion(output, inputs)
+            output = model(inputs)
+            print(labels, "ANTES LAS ETIQUETAS")
+            labels = labels.type(torch.FloatTensor)
+            print(labels, "LAS ETIQUETAS")
+            print(output, "LAS ENTRADAS")
+            loss = criterion(output, labels)
+            
             loss.backward()
             optimizer.step()
 
@@ -98,9 +123,9 @@ def train(n_epochs, loaders, model, optimizer, criterion, valid_loader):
 #                 data, target = data.cuda(), target.cuda()
                 ## update the average validation loss
                 # forward pass: compute predicted outputs by passing inputs to the model
-            output = model(target)
+            output = model(data)
             # calculate the loss
-            loss = criterion(output, data)
+            loss = criterion(output, target)
             # update running validation loss 
             valid_loss += loss.item()
             print("alexxxxxxxxx")
@@ -152,8 +177,6 @@ if __name__ == '__main__':
                         help='learning rate (default: 0.001)')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--bucket', type=str, default= 'prueba', metavar='B',
-                        help='random seed (default: alexander rubio)')
     
     ## TODO: Add args for the three model parameters: input_features, hidden_dim, output_dim
     # Model Parameters
@@ -170,9 +193,8 @@ if __name__ == '__main__':
     torch.manual_seed(args.seed)
 
     # Load the training data.
-    train_loader = _get_train_data_loader(args.batch_size, args.data_dir, "train.pt")
-    valid_loader = _get_train_data_loader(args.batch_size, args.test, "test.pt")
-
+    train_loader, test_loader = _get_train_data_loader(args.batch_size, args.data_dir, args.test)
+    
 
 
     ## --- Your code here --- ##
@@ -187,7 +209,7 @@ if __name__ == '__main__':
     criterion = torch.nn.BCELoss()
 
     # Trains the model (given line of code, which calls the above training function)
-    train(args.epochs, train_loader, model, optimizer, criterion, valid_loader)
+    train(args.epochs, train_loader, model, optimizer, criterion, test_loader)
 
 
     ## TODO: complete in the model_info by adding three argument names, the first is given
