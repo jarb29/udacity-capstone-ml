@@ -21,7 +21,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import datasets
 
-
 # imports the model in model.py by name
 from model import Net
 
@@ -57,29 +56,32 @@ def model_fn(model_dir):
 def _get_train_data_loader(batch_size, training_dir, test_dir):
     print("Get train data loader.")
     
+    training_dir = os.path.join(training_dir)
+    test_dir =  os.path.join(test_dir)
+   
+    
     train_transform = transforms.Compose([ transforms.Resize(224),
                                            transforms.RandomHorizontalFlip(), # randomly flip and rotate
                                            transforms.RandomRotation(10),
                                            transforms.CenterCrop(244),
                                            transforms.ToTensor(),
-                                           transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+                                           transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
                                          ])
     
-    test_transform = transforms.Compose([
-                                         transforms.Resize(224),
-                                         transforms.ToTensor(),
+    test_transform = transforms.Compose([transforms.Resize(224),
                                          transforms.CenterCrop(244),
-                                         transforms.Normalize([0.5, 0.5, 0.5],[0.5, 0.5, 0.5])
+                                         transforms.ToTensor(),
+                                         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
                                         ])
     
     
-    train_data = datasets.ImageFolder(training_dir, transform=train_transform)
+    train_data = datasets.ImageFolder(test_dir, transform=train_transform)
 
     test_data = datasets.ImageFolder(test_dir, transform=test_transform)
 
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=64, shuffle=True)
 
-    test_loader = torch.utils.data.DataLoader(test_data, batch_size=64)
+    test_loader = torch.utils.data.DataLoader(test_data, batch_size=64, shuffle=True)
 
     return train_loader, test_loader
 
@@ -92,58 +94,63 @@ def train(n_epochs, loaders, model, optimizer, criterion, valid_loader):
 
     #print_every = 10
 
-    
+    train_losses, test_losses = [], []
     for epoch in range(1, n_epochs+1):
         # initialize variables to monitor training and validation loss
+        
         train_loss = 0.0
         valid_loss = 0.0
         model.train()
         for index, (inputs, labels) in enumerate(loaders):
-            # Move input and label tensors to the default device
             
-            optimizer.zero_grad()
-            output = model(inputs)
-            print(labels, "ANTES LAS ETIQUETAS")
-            labels = labels.type(torch.FloatTensor)
-            print(labels, "LAS ETIQUETAS")
-            print(output, "LAS ENTRADAS")
-            loss = criterion(output, labels)
-            
+            optimizer.zero_grad()                     
+            output = model(inputs) 
+            loss = criterion(output, labels)          
             loss.backward()
             optimizer.step()
-
             train_loss += loss.item()
 
             #if steps % print_every == 0:
-        model.eval()
-        for batch_idx, (data, target) in enumerate(valid_loader):
-#             data, target = data.cuda(), target.cuda()
-#             # move to GPU
-#             if use_cuda:
-#                 data, target = data.cuda(), target.cuda()
-                ## update the average validation loss
-                # forward pass: compute predicted outputs by passing inputs to the model
-            output = model(data)
-            # calculate the loss
-            loss = criterion(output, target)
-            # update running validation loss 
-            valid_loss += loss.item()
-            print("alexxxxxxxxx")
-
-        print('Epoch: {} \tTraining Loss: {:.6f} \tValidation Loss: {:.6f}'.format(
-            epoch, 
-            train_loss,
-            valid_loss
+        else:
+            valid_loss = 0
+            accuracy = 0
+            
+            test_loss = 0.
+            correct = 0.
+            total = 0.
+            
+            # Turn off gradients for validation, saves memory and computations
+            with torch.no_grad():
+                model.eval()
+                
+                for batch_idx, (data, target) in enumerate(valid_loader):
+            
+                    output = model(data)
+                    loss = criterion(output, target)
+                    valid_loss += loss.item()
+                    
+                    test_loss = test_loss + ((1 / (batch_idx + 1)) * (loss.data - test_loss))
+                    # convert output probabilities to predicted class
+                    pred = output.data.max(1, keepdim=True)[1]
+                    # compare predictions to true label
+                    correct += np.sum(np.squeeze(pred.eq(target.data.view_as(pred))).cpu().numpy())
+                    total += data.size(0)
+                    
+            
+                
+            model.train()
+            train_losses.append(train_loss/len(loaders))
+            test_losses.append(valid_loss/len(valid_loader))
+            
+            print('Test Loss: {:.6f}\n'.format(test_loss))
+            print('\nTest Accuracy: %2d%% (%2d/%2d)' % (100. * correct / total, correct, total))
+            
+            print('Epoch: {} \tTraining Loss: {:.6f} \tValidation Loss: {:.6f}'.format(
+                epoch, 
+                train_loss,
+                valid_loss
             ))
         
-        ## TODO: save the model if validation loss has decreased
-        if valid_loss < valid_loss_min:
-            torch.save(model.state_dict(), save_path)
-            print('Validation loss decreased ({:.6f} --> {:.6f}).  Saving model ...'.format(
-            valid_loss_min,
-            valid_loss))
-            valid_loss_min = valid_loss
-            valid_loss = 0
 
 
 ## TODO: Complete the main code
@@ -206,7 +213,7 @@ if __name__ == '__main__':
 
     ## TODO: Define an optimizer and loss function for training
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
-    criterion = torch.nn.BCELoss()
+    criterion = torch.nn.CrossEntropyLoss()
 
     # Trains the model (given line of code, which calls the above training function)
     train(args.epochs, train_loader, model, optimizer, criterion, test_loader)
