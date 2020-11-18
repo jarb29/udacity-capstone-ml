@@ -75,7 +75,7 @@ def _get_train_data_loader(batch_size, training_dir, test_dir):
                                         ])
     
     
-    train_data = datasets.ImageFolder(test_dir, transform=train_transform)
+    train_data = datasets.ImageFolder(training_dir, transform=train_transform)
 
     test_data = datasets.ImageFolder(test_dir, transform=test_transform)
 
@@ -92,26 +92,35 @@ def train(n_epochs, loaders, model, optimizer, criterion, valid_loader):
     # initialize tracker for minimum validation loss
     valid_loss_min = np.Inf 
 
-    #print_every = 10
+    print_every = 10
 
     train_losses, test_losses = [], []
-    for epoch in range(1, n_epochs+1):
-        # initialize variables to monitor training and validation loss
+    for epoch in range(0, n_epochs):
+        
+#         initialize variables to monitor training and validation loss
         
         train_loss = 0.0
         valid_loss = 0.0
         model.train()
+        print('Epoch: {}'.format(epoch))
+        
         for index, (inputs, labels) in enumerate(loaders):
+            inputs = inputs.to(device)
+            labels = labels.to(device)
             
-            optimizer.zero_grad()                     
+            optimizer.zero_grad()     
+            
             output = model(inputs) 
+            
             loss = criterion(output, labels)          
             loss.backward()
             optimizer.step()
             train_loss += loss.item()
+#             print('Train Loss inside the loop: {:.6f}\n'.format(train_loss))
+            
+        print('Train Loss: {:.6f}\n'.format(train_loss))
 
-            #if steps % print_every == 0:
-        else:
+        if epoch % print_every == 0:
             valid_loss = 0
             accuracy = 0
             
@@ -124,32 +133,34 @@ def train(n_epochs, loaders, model, optimizer, criterion, valid_loader):
                 model.eval()
                 
                 for batch_idx, (data, target) in enumerate(valid_loader):
-            
-                    output = model(data)
-                    loss = criterion(output, target)
+                    
+                    
+                    inputs = data.to(device)
+                    labels = target.to(device)
+                    
+                    output_v = model(data)
+                    loss = criterion(output_v, target)
                     valid_loss += loss.item()
                     
                     test_loss = test_loss + ((1 / (batch_idx + 1)) * (loss.data - test_loss))
                     # convert output probabilities to predicted class
-                    pred = output.data.max(1, keepdim=True)[1]
+                    pred = output_v.data.max(1, keepdim=True)[1]
                     # compare predictions to true label
                     correct += np.sum(np.squeeze(pred.eq(target.data.view_as(pred))).cpu().numpy())
                     total += data.size(0)
-                    
             
-                
-            model.train()
-            train_losses.append(train_loss/len(loaders))
-            test_losses.append(valid_loss/len(valid_loader))
-            
-            print('Test Loss: {:.6f}\n'.format(test_loss))
             print('\nTest Accuracy: %2d%% (%2d/%2d)' % (100. * correct / total, correct, total))
-            
-            print('Epoch: {} \tTraining Loss: {:.6f} \tValidation Loss: {:.6f}'.format(
-                epoch, 
+            print('Training Loss: {:.6f} \tValidation Loss: {:.6f}'.format(
                 train_loss,
                 valid_loss
             ))
+            
+            train_losses.append(train_loss/len(loaders))
+            test_losses.append(valid_loss/len(valid_loader))
+                          
+        model.train()
+#         print('Test Loss: {:.6f}\n'.format(test_loss))
+
         
 
 
