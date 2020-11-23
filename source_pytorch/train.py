@@ -20,6 +20,7 @@ import torchvision.models as models
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import datasets
+from io import BytesIO
 
 # imports the model in model.py by name
 from model import Net
@@ -52,38 +53,34 @@ def model_fn(model_dir):
     print("Done loading model.")
     return model
 
+
 # Gets training data in batches from the train.csv file
 def _get_train_data_loader(batch_size, training_dir, test_dir):
+    
     print("Get train data loader.")
-    
-    training_dir = os.path.join(training_dir)
+    num_workers = 1
+    train_dir = os.path.join(training_dir)
     test_dir =  os.path.join(test_dir)
-   
     
-    train_transform = transforms.Compose([ transforms.Resize(224),
-                                           transforms.RandomHorizontalFlip(), # randomly flip and rotate
-                                           transforms.RandomRotation(10),
-                                           transforms.CenterCrop(244),
-                                           transforms.ToTensor(),
-                                           transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-                                         ])
+    data_transforms = {'train':transforms.Compose([transforms.Resize(258),
+                                                   transforms.RandomResizedCrop(224),
+                                                   transforms.RandomRotation(30),
+                                                   transforms.RandomHorizontalFlip(),
+                                                   transforms.ToTensor(),
+                                                   transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])]),
+                       'test':transforms.Compose([transforms.Resize(258),
+                                                  transforms.CenterCrop(224),
+                                                  transforms.ToTensor(),
+                                                  transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])]),
+                      }
+    train_data = datasets.ImageFolder(train_dir, transform = data_transforms['train'])
+    test_data = datasets.ImageFolder(test_dir, transform = data_transforms['test'])
+        
+    trainloader = torch.utils.data.DataLoader(train_data, batch_size = batch_size, num_workers = num_workers, shuffle = True)
+    testloader = torch.utils.data.DataLoader(test_data, batch_size = batch_size, num_workers = num_workers, shuffle = False)
     
-    test_transform = transforms.Compose([transforms.Resize(224),
-                                         transforms.CenterCrop(244),
-                                         transforms.ToTensor(),
-                                         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-                                        ])
-    
-    
-    train_data = datasets.ImageFolder(training_dir, transform=train_transform)
 
-    test_data = datasets.ImageFolder(test_dir, transform=test_transform)
-
-    train_loader = torch.utils.data.DataLoader(train_data, batch_size=64, shuffle=True)
-
-    test_loader = torch.utils.data.DataLoader(test_data, batch_size=64, shuffle=True)
-
-    return train_loader, test_loader
+    return trainloader, testloader
 
 
 # Provided training function
@@ -104,11 +101,11 @@ def train(n_epochs, loaders, model, optimizer, criterion, valid_loader):
         model.train()
         print('Epoch: {}'.format(epoch))
         
-        for index, (inputs, labels) in enumerate(loaders):
+        for index, (inputs, labels) in enumerate(loaders):               
             inputs = inputs.to(device)
             labels = labels.to(device)
             
-            optimizer.zero_grad()     
+            optimizer.zero_grad() 
             
             output = model(inputs) 
             
@@ -133,12 +130,11 @@ def train(n_epochs, loaders, model, optimizer, criterion, valid_loader):
                 model.eval()
                 
                 for batch_idx, (data, target) in enumerate(valid_loader):
-                    
-                    
+                   
                     inputs = data.to(device)
-                    labels = target.to(device)
+                    target = target.to(device)
                     
-                    output_v = model(data)
+                    output_v = model(inputs)
                     loss = criterion(output_v, target)
                     valid_loss += loss.item()
                     
@@ -187,12 +183,15 @@ if __name__ == '__main__':
     parser.add_argument('--test', type=str, default=os.environ['SM_CHANNEL_TEST'])
     
     # Training Parameters, given
-    parser.add_argument('--batch-size', type=int, default=10, metavar='N',
+    parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                         help='input batch size for training (default: 10)')
+    
     parser.add_argument('--epochs', type=int, default=10, metavar='N',
                         help='number of epochs to train (default: 10)')
-    parser.add_argument('--lr', type=float, default=0.05, metavar='LR',
-                        help='learning rate (default: 0.05)')
+    
+    parser.add_argument('--lr', type=float, default=0.0005, metavar='LR',
+                        help='learning rate (default: 0.0001)')
+    
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
     

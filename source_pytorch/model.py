@@ -15,7 +15,7 @@ class Net(nn.Module):
         self.conv3 = nn.Conv2d(64, 128, 3, padding = 1)
        
         
-        # Pooling layer
+        # max pooling layer
         self.pool = nn.MaxPool2d(2, 2)
         
         # Fully-connected layers
@@ -43,7 +43,4 @@ class Net(nn.Module):
 
         
         return x
-    
-    
-    
-    
+
