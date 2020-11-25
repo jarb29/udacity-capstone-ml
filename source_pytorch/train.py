@@ -89,18 +89,16 @@ def train(n_epochs, loaders, model, optimizer, criterion, valid_loader):
     # initialize tracker for minimum validation loss
     valid_loss_min = np.Inf 
 
-    print_every = 10
+    print_every = 5
 
     train_losses, test_losses = [], []
     for epoch in range(0, n_epochs):
         
 #         initialize variables to monitor training and validation loss
-        
-        train_loss = 0.0
-        valid_loss = 0.0
+        train_loss = 0
         model.train()
+        total =0 
         print('Epoch: {}'.format(epoch))
-        
         for index, (inputs, labels) in enumerate(loaders):               
             inputs = inputs.to(device)
             labels = labels.to(device)
@@ -112,52 +110,43 @@ def train(n_epochs, loaders, model, optimizer, criterion, valid_loader):
             loss = criterion(output, labels)          
             loss.backward()
             optimizer.step()
-            train_loss += loss.item()
-#             print('Train Loss inside the loop: {:.6f}\n'.format(train_loss))
+#             train_loss += loss.item()
+            train_loss = train_loss + ((1 / (batch_idx + 1)) * (loss.data - train_loss))
+            total += inputs.size(0)
             
         print('Train Loss: {:.6f}\n'.format(train_loss))
 
         if epoch % print_every == 0:
+            
+            correct = 0
+            total = 0
+            model.eval()
             valid_loss = 0
-            accuracy = 0
-            
-            test_loss = 0.
-            correct = 0.
-            total = 0.
-            
-            # Turn off gradients for validation, saves memory and computations
-            with torch.no_grad():
-                model.eval()
+            for batch_idx, (data, target) in enumerate(valid_loader):
+
+                inputs = data.to(device)
+                target = target.to(device)
+                    
+                output_v = model(inputs)
+                loss = criterion(output_v, target)
+#                 valid_loss += loss.item()
+                    
+                # convert output probabilities to predicted class
+                pred = output_v.data.max(1, keepdim=True)[1]
+                # compare predictions to true label
                 
-                for batch_idx, (data, target) in enumerate(valid_loader):
-                   
-                    inputs = data.to(device)
-                    target = target.to(device)
-                    
-                    output_v = model(inputs)
-                    loss = criterion(output_v, target)
-                    valid_loss += loss.item()
-                    
-                    test_loss = test_loss + ((1 / (batch_idx + 1)) * (loss.data - test_loss))
-                    # convert output probabilities to predicted class
-                    pred = output_v.data.max(1, keepdim=True)[1]
-                    # compare predictions to true label
-                    correct += np.sum(np.squeeze(pred.eq(target.data.view_as(pred))).cpu().numpy())
-                    total += data.size(0)
+                correct += np.sum(np.squeeze(pred.eq(target.data.view_as(pred))).cpu().numpy())
+                total += data.size(0)
+                
+                valid_loss = valid_loss + ((1 / (batch_idx + 1)) * (loss.data - valid_loss))
             
             print('\nTest Accuracy: %2d%% (%2d/%2d)' % (100. * correct / total, correct, total))
             print('Training Loss: {:.6f} \tValidation Loss: {:.6f}'.format(
                 train_loss,
                 valid_loss
             ))
-            
-            train_losses.append(train_loss/len(loaders))
-            test_losses.append(valid_loss/len(valid_loader))
-                          
+                                      
         model.train()
-#         print('Test Loss: {:.6f}\n'.format(test_loss))
-
-        
 
 
 ## TODO: Complete the main code
