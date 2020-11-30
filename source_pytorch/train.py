@@ -111,7 +111,7 @@ def train(n_epochs, loaders, model, optimizer, criterion, valid_loader):
             loss.backward()
             optimizer.step()
 #             train_loss += loss.item()
-            train_loss = train_loss + ((1 / (batch_idx + 1)) * (loss.data - train_loss))
+            train_loss = train_loss + ((1 / (index + 1)) * (loss.data - train_loss))
             total += inputs.size(0)
             
         print('Train Loss: {:.6f}\n'.format(train_loss))

@@ -8,7 +8,7 @@ from six import BytesIO
 from model import Net
 
 # default content type is numpy array
-NP_CONTENT_TYPE = 'application/json'
+NP_CONTENT_TYPE = 'application/x-npy'
 
 
 # Provided model load function

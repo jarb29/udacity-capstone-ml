@@ -14,7 +14,6 @@ class Net(nn.Module):
         self.conv2 = nn.Conv2d(32, 64, 3, stride = 2, padding = 1)
         self.conv3 = nn.Conv2d(64, 128, 3, padding = 1)
        
-        
         # max pooling layer
         self.pool = nn.MaxPool2d(2, 2)
         
@@ -33,14 +32,10 @@ class Net(nn.Module):
         x = self.pool(x)
         x = F.relu(self.conv3(x))
         x = self.pool(x)
-        
         x = x.view(-1, 7 * 7 * 128)
-        
         x = self.dropout(x)
         x = F.relu(self.fc1(x))
         x = self.dropout(x)
         x = self.fc2(x)
-
-        
         return x
 
